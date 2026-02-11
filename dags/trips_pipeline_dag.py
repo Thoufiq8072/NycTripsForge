@@ -11,10 +11,7 @@ def taxi_pipeline():
 
     @task.bash
     def seed_raw_data():
-        return """
-        rsync -av --remove-source-files /seed/raw/trip /opt/airflow/data/raw/trip &&
-        rm -rf /seed/raw/trip || true
-        """
+        return "mkdir -p /opt/airflow/data/raw && rsync -av --remove-source-files /seed/raw/trip /opt/airflow/data/raw && rm -rf /seed/raw/trip || true"
 
     @task.bash
     def bronze():
