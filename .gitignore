@@ -1,0 +1,27 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Airflow
+logs/
+plugins/__pycache__/
+airflow.db
+
+# Virtual environments
+.venv/
+
+# Environment variables
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Medallion architecture source and destination data directories
+data/bronze
+data/silver
+data/gold
