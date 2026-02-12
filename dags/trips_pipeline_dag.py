@@ -11,20 +11,20 @@ def taxi_pipeline():
 
     @task.bash
     def seed_raw_data():
-        return "mkdir -p /opt/airflow/data/raw && rsync -av --remove-source-files /seed/raw/trip /opt/airflow/data/raw && rm -rf /seed/raw/trip || true"
+        return "mkdir -p /opt/airflow/data/raw && cp -r /seed/raw/trip /opt/airflow/data/raw || true"
 
     @task.bash
-    def bronze():
+    def bronze_trip():
         return "cd /opt/airflow/dags && python -m scripts.bronze.bronze_taxi"
     
     
     @task.bash
-    def silver():
+    def silver_trip():
         return "cd /opt/airflow/dags && python -m scripts.silver.silver_taxi"
   
-    bronze_task = bronze()
-    silver_task = silver()
+    bronze_trip_task = bronze_trip()
+    silver_trip_task = silver_trip()
 
-    seed_raw_data() >> bronze_task >> silver_task
+    seed_raw_data() >> bronze_trip_task >> silver_trip_task
     
 taxi_pipeline()

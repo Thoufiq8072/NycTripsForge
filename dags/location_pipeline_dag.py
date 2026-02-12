@@ -11,7 +11,7 @@ def location_pipeline():
 
     @task.bash
     def seed_raw_data():
-        return "mkdir -p /opt/airflow/data/raw && rsync -av --remove-source-files /seed/raw/location /opt/airflow/data/raw && rm -rf /seed/raw/location || true"
+        return "mkdir -p /opt/airflow/data/raw && cp -r /seed/raw/location /opt/airflow/data/raw || true"
     
     @task.bash
     def bronze_location():
