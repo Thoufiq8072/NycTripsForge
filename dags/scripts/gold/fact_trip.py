@@ -1,6 +1,5 @@
 from numpy import broadcast
 from pyparsing import col
-from dags.scripts.gold.dim_location import DIM_LOCATION_PATH
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 import pandas as pd

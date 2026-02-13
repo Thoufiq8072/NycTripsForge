@@ -1,54 +1,59 @@
 # NycTripsForge
 
-NycTripsForge is a local data engineering project that builds a Medallion-style pipeline for NYC taxi data using Airflow, PySpark, and Delta Lake.
+**Version 1.0 - Complete** ✓
+
+NycTripsForge is a data engineering project that builds a Medallion Architecture pipeline for NYC taxi data using Airflow, PySpark, and Delta Lake. The project implements a full-stack ELT/ETL workflow with bronze, silver, and gold layers orchestrated through Apache Airflow.
 
 ## Stack
 
-- Apache Airflow 3.1.6 (Docker Compose)
-- PySpark 3.5.1
-- Delta Lake (`delta-spark` 3.1.0)
-- PostgreSQL 16 (Airflow metadata DB)
+- **Apache Airflow** 3.1.6 (Docker Compose)
+- **PySpark** 3.5.1
+- **Delta Lake** (`delta-spark` 3.1.0)
+- **PostgreSQL** 16 (Airflow metadata DB)
 
-## What is implemented
+## Version 1.0 - Completed Features
 
-- Separate ingestion pipelines for trip and location datasets.
-- Bronze and Silver layers for both datasets.
-- Gold layer with star-schema style outputs:
-  - `dim_location`
-  - `fact_trip`
-- Containerized Airflow runtime with mounted DAGs/config/plugins and persistent data volume.
+✅ **Multi-dataset Bronze layer** - Parallel ingestion of trip and location data with audit metadata  
+✅ **Silver layer transformations** - Data quality, deduplication, schema enforcement, and enrichment  
+✅ **Gold layer star schema** - Dimensional and fact tables for analytics  
+✅ **Orchestration DAG** - Master DAG that triggers all pipelines with proper dependency management  
+✅ **Containerized runtime** - Docker Compose setup with persistent volumes and easy local development  
+✅ **Spark integration** - PySpark jobs for scalable data processing  
 
-## Project structure
+## Project Structure
 
 ```text
 .
-|- dags/
-|  |- trips_pipeline_dag.py
-|  |- location_pipeline_dag.py
-|  |- gold_dag.py
-|  `- scripts/
-|     |- bronze/
-|     |- silver/
-|     |- gold/
-|     `- spark/
-|- data/raw/
-|  |- trip/yellow_tripdata_2025-11.parquet
-|  `- location/taxi_zone_lookup.csv
-|- docker-compose.yaml
-`- Dockerfile
+├── dags/
+│   ├── nyc_taxi_pipeline_dag.py    # Master orchestration DAG (NEW)
+│   ├── trips_pipeline_dag.py        # Taxi pipeline
+│   ├── location_pipeline_dag.py     # Location pipeline
+│   ├── gold_dag.py                  # Gold layer transformations
+│   └── scripts/
+│       ├── bronze/                  # Bronze layer transformations
+│       ├── silver/                  # Silver layer transformations
+│       ├── gold/                    # Gold layer transformations
+│       └── spark/                   # Spark session utilities
+├── data/raw/
+│   ├── trip/yellow_tripdata_2025-11.parquet
+│   └── location/taxi_zone_lookup.csv
+├── docker-compose.yaml
+├── Dockerfile
+└── requirements.txt
 ```
 
 ## DAGs
 
 All DAGs are manual (`schedule=None`, `catchup=False`).
 
-| DAG | Purpose | Task flow |
+| DAG | Purpose | Task Flow |
 | --- | --- | --- |
-| `taxi_pipeline` | Build Bronze/Silver trip data | `seed_raw_data -> bronze_trip -> silver_trip` |
-| `location_pipeline` | Build Bronze/Silver location data | `seed_raw_data -> bronze_location -> silver_location` |
-| `gold_dag` | Build Gold dimensional tables | `dim_location -> fact_trip` |
+| **`nyc_taxi_pipeline`** ⭐ | **Master orchestration** | `run_taxi_pipeline` → `run_location_pipeline` → `run_gold_pipeline` |
+| `taxi_pipeline` | Build Bronze/Silver trip data | `seed_raw_data` → `bronze_trip` → `silver_trip` |
+| `location_pipeline` | Build Bronze/Silver location data | `seed_raw_data` → `bronze_location` → `silver_location` |
+| `gold_dag` | Build Gold dimensional/fact tables | `dim_location` → `fact_trip` |
 
-`gold_dag` depends on Silver outputs from both `taxi_pipeline` and `location_pipeline`.
+**→ Start with `nyc_taxi_pipeline` for full workflow execution**
 
 ## Data paths
 
@@ -116,65 +121,86 @@ All DAGs are manual (`schedule=None`, `catchup=False`).
   - Builds `trip_sk` surrogate key (`sha2` on vendor + pickup/dropoff timestamps).
   - Writes `fact_trip` Delta table.
 
-## Run locally
+## Quick Start
 
-### 1) Prepare env file
+### 1. Prepare environment file
 
-```powershell
-Copy-Item .env.example .env
+```bash
+cp .env.example .env
 ```
 
-### 2) Initialize Airflow metadata DB and admin user
+### 2. Initialize Airflow metadata DB and create admin user
 
 ```bash
 docker compose up airflow-init
 ```
 
-### 3) Start services
+### 3. Start all services
 
 ```bash
 docker compose up -d
 ```
 
-### 4) Open Airflow UI
+### 4. Open Airflow UI
 
-- URL: `http://localhost:8080`
-- Default credentials: `airflow` / `airflow`
+- **URL:** `http://localhost:8080`
+- **Default credentials:** `airflow` / `airflow`
 
-### 5) Trigger DAGs in order
+### 5. Trigger the master DAG
 
-1. `location_pipeline`
-2. `taxi_pipeline`
-3. `gold_dag`
+1. Open Airflow UI dashboard
+2. Find and click on `nyc_taxi_pipeline`
+3. Click **Trigger DAG**
+4. The orchestration will automatically execute all dependent pipelines in the correct order:
+   - `taxi_pipeline` and `location_pipeline` run in parallel
+   - Once both complete, `gold_dag` runs automatically
 
-## Useful commands
+That's it! The entire data pipeline will execute end-to-end.
 
-Check container status:
+## Development & Troubleshooting
+
+### Check container status
 
 ```bash
 docker compose ps
 ```
 
-Tail scheduler logs:
+### View Airflow scheduler logs
 
 ```bash
 docker compose logs -f airflow-scheduler
 ```
 
-List generated data folders inside Airflow container:
+### Inspect generated data (inside Airflow container)
 
 ```bash
 docker compose exec airflow-apiserver bash -lc "find /opt/airflow/data -maxdepth 3 -type d | sort"
 ```
 
-Stop services:
+### Stop services
 
 ```bash
 docker compose down
 ```
 
-Reset everything including volumes (deletes DB + generated data):
+### Reset everything (includes DB and generated data)
 
 ```bash
 docker compose down -v
 ```
+
+## System Architecture
+
+### Data Flow
+
+```
+Raw Data
+  ├─→ bronze_location → silver_location ─┐
+  └─→ bronze_trip     → silver_trip     ─→ dim_location + fact_trip (Gold)
+```
+
+### Layer Responsibilities
+
+**Bronze Layer:** Ingest, audit metadata  
+**Silver Layer:** Clean, deduplicate, validate, enrich  
+**Gold Layer:** Dimensional modeling, star schema  
