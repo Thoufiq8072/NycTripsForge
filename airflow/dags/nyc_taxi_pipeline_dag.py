@@ -1,4 +1,4 @@
-from airflow.sdk import dag
+from airflow.decorators import dag
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from pendulum import datetime
 

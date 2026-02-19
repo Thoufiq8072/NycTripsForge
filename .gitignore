@@ -22,7 +22,4 @@ airflow.db
 Thumbs.db
 
 # Medallion architecture source and destination data directories
-data/raw/
-data/bronze
-data/silver
-data/gold
+data/
